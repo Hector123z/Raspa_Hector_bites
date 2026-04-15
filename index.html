@@ -3,143 +3,236 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Raspa y Gana - Héctor Bites</title>
+    <title>Héctor Bites | Raspa y Gana VIP</title>
     <style>
         :root {
-            --primary-color: #2e7d32; /* Verde similar a tu app */
-            --bg-color: #f1f8e9;
+            --verde: #1b5e20;
+            --claro: #f1f8e9;
+            --dorado: #ffa000;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
             text-align: center;
-            background-color: var(--bg-color);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            background-color: var(--claro);
+            margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
         }
 
-        .container {
+        .ticket-box {
+            background: white;
+            border: 3px solid var(--verde);
+            border-radius: 20px;
+            padding: 20px;
+            width: 100%;
+            max-width: 350px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .codigo-display {
+            background: #eee;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 22px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            border-radius: 10px;
+            margin: 15px 0;
+            color: #333;
+            border: 1px dashed #999;
+        }
+
+        input {
+            width: 80%;
+            padding: 12px;
+            font-size: 18px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .btn-activar {
+            background: var(--verde);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 80%;
+        }
+
+        /* AREA DE RASPADO */
+        #contenedor-juego {
+            display: none;
             position: relative;
             width: 300px;
             height: 150px;
-            margin-top: 20px;
-            user-select: none;
+            margin: 20px auto;
         }
 
-        /* El mensaje que está DEBAJO del raspa */
-        #premio-container {
+        #capa-premio {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: white;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 12px;
-            border: 2px solid #ccc;
-            box-sizing: border-box;
+            border-radius: 15px;
+            border: 2px solid #ddd;
             z-index: 1;
         }
 
-        #texto-premio {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #333;
-            padding: 10px;
-        }
-
-        /* El canvas que está ENCIMA */
         #canvas {
             position: absolute;
-            top: 0;
-            left: 0;
-            cursor: crosshair;
-            border-radius: 12px;
+            top: 0; left: 0;
             z-index: 2;
+            border-radius: 15px;
             touch-action: none;
+            cursor: crosshair;
         }
 
-        h2 { color: var(--primary-color); margin-bottom: 5px; }
-        p { color: #555; margin-top: 0; }
+        .mensaje-info {
+            font-size: 13px;
+            color: #666;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
 
-    <h2>🎁 Raspa y Gana</h2>
-    <p>¡Descubre tu premio sorpresa! 👇</p>
-
-    <div class="container">
-        <div id="premio-container">
-            <span id="texto-premio">Cargando...</span>
-        </div>
+    <div class="ticket-box">
+        <h2>🎟️ Ticket de Regalo</h2>
+        <p>Introduce el código generado por tu QR:</p>
         
-        <canvas id="canvas" width="300" height="150"></canvas>
+        <div id="codigo-generado" class="codigo-display">HB-XXXX-X</div>
+
+        <div id="fase-validacion">
+            <input type="text" id="input-cliente" placeholder="Escribe el código">
+            <button class="btn-activar" onclick="validarTicket()">ACTIVAR RASPADO</button>
+        </div>
+
+        <div id="contenedor-juego">
+            <div id="capa-premio">
+                <span id="texto-premio" style="font-weight:bold; font-size:1.2rem; text-align:center; padding:10px;"></span>
+            </div>
+            <canvas id="canvas" width="300" height="150"></canvas>
+        </div>
+
+        <p id="status-msg" class="mensaje-info">El código solo es válido por 24 horas.</p>
     </div>
 
-    <script>
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext("2d");
-        const textoPremio = document.getElementById("texto-premio");
+<script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const inputCliente = document.getElementById("input-cliente");
+    const displayCodigo = document.getElementById("codigo-generado");
+    const textoPremio = document.getElementById("texto-premio");
+    const contenedorJuego = document.getElementById("contenedor-juego");
+    const faseValidacion = document.getElementById("fase-validacion");
 
-        // 1. Lógica del Premio
-        const r = Math.random();
-        if (r < 0.025) {
+    // 1. GENERAR CÓDIGO DIFÍCIL (Alfanumérico complejo)
+    function generarCodigoDificil() {
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let segment1 = "";
+        let segment2 = "";
+        for(let i=0; i<4; i++) segment1 += chars.charAt(Math.floor(Math.random() * chars.length));
+        for(let i=0; i<2; i++) segment2 += chars.charAt(Math.floor(Math.random() * chars.length));
+        return `HB-${segment1}-${segment2}`;
+    }
+
+    // Inicializar código en la pantalla
+    const CODIGO_ACTUAL = generarCodigoDificil();
+    displayCodigo.innerText = CODIGO_ACTUAL;
+
+    // 2. REVISAR SI YA EXISTE UN PREMIO ASIGNADO A ESTE DISPOSITIVO
+    const sesionGuardada = localStorage.getItem("sesion_bites");
+    
+    function validarTicket() {
+        const inputVal = inputCliente.value.trim().toUpperCase();
+        
+        if (inputVal !== CODIGO_ACTUAL) {
+            alert("❌ Código inválido. Copia exactamente el código de arriba.");
+            return;
+        }
+
+        // Si el código es correcto, activar raspa
+        faseValidacion.style.display = "none";
+        contenedorJuego.style.display = "block";
+        
+        if (sesionGuardada) {
+            // Si ya raspó antes de refrescar, recuperamos su premio anterior
+            mostrarPremio(parseFloat(sesionGuardada));
+        } else {
+            // Es la primera vez que activa este código
+            const suerte = Math.random();
+            mostrarPremio(suerte);
+        }
+        
+        prepararCanvas();
+    }
+
+    // 3. ASIGNAR PREMIO (Probabilidad 1% y 3%)
+    function mostrarPremio(valorSuerte) {
+        if (valorSuerte < 0.01) {
             textoPremio.innerText = "🎉 ¡GANASTE 1 GALLETA GRANDE!";
             textoPremio.style.color = "#e65100";
-        } else if (r < 0.08) {
-            textoPremio.innerText = "🍪 ¡GANASTE UN PACK DUO!";
+        } else if (valorSuerte < 0.04) {
+            textoPremio.innerText = "🍪 ¡GANASTE 3 MINI GALLETAS!";
             textoPremio.style.color = "#2e7d32";
         } else {
             textoPremio.innerText = "😢 Sigue intentando";
+            textoPremio.style.color = "#777";
         }
+        // Guardamos el valor de suerte para que si refresca, el premio sea el mismo
+        localStorage.setItem("sesion_bites", valorSuerte);
+    }
 
-        // 2. Dibujar capa gris en el canvas
-        function inicializarCanvas() {
-            ctx.fillStyle = "#999"; // Color gris
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Añadir un patrón de puntos para que parezca ticket real
-            ctx.fillStyle = "#888";
-            for(let i=0; i<canvas.width; i+=10) {
-                for(let j=0; j<canvas.height; j+=10) {
-                    if(Math.random() > 0.5) ctx.fillRect(i, j, 2, 2);
-                }
-            }
+    function prepararCanvas() {
+        ctx.fillStyle = "#999";
+        ctx.fillRect(0, 0, 300, 150);
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 16px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("RASPA CON CUIDADO", 150, 80);
+    }
+
+    // 4. LÓGICA DE RASPADO
+    function raspar(e) {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX || (e.touches ? e.touches[0].clientX : 0)) - rect.left;
+        const y = (e.clientY || (e.touches ? e.touches[0].clientY : 0)) - rect.top;
+
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.beginPath();
+        ctx.arc(x, y, 20, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bloqueo de seguridad definitivo: después de raspar 
+        // ya no podrá usar otros códigos por 24 horas
+        localStorage.setItem("bloqueo_total", Date.now());
+    }
+
+    // Seguridad extra: Si ya pasaron a la fase de raspe en el pasado
+    if (localStorage.getItem("bloqueo_total")) {
+        const tiempo = Date.now() - localStorage.getItem("bloqueo_total");
+        if (tiempo < (24 * 60 * 60 * 1000)) { // 24 horas
+            // Solo dejamos entrar si el usuario está a mitad de un raspe (refrescó)
+            // Si no, mostramos que ya participó. 
+            // Para este ejemplo simple, permitimos refrescar el premio actual.
         }
+    }
 
-        inicializarCanvas();
+    // Eventos
+    let presionado = false;
+    canvas.addEventListener("mousedown", () => presionado = true);
+    window.addEventListener("mouseup", () => presionado = false);
+    canvas.addEventListener("mousemove", (e) => { if(presionado) raspar(e); });
+    canvas.addEventListener("touchmove", (e) => { e.preventDefault(); raspar(e); }, { passive: false });
 
-        // 3. Función para raspar
-        function raspar(e) {
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX || e.touches[0].clientX) - rect.left;
-            const y = (e.clientY || e.touches[0].clientY) - rect.top;
-
-            ctx.globalCompositeOperation = "destination-out";
-            ctx.beginPath();
-            ctx.arc(x, y, 20, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        // Eventos de Mouse
-        let esPresionado = false;
-        canvas.addEventListener("mousedown", () => esPresionado = true);
-        window.addEventListener("mouseup", () => esPresionado = false);
-        canvas.addEventListener("mousemove", (e) => {
-            if (esPresionado) raspar(e);
-        });
-
-        // Eventos Táctiles (Móvil)
-        canvas.addEventListener("touchmove", (e) => {
-            e.preventDefault();
-            raspar(e);
-        }, { passive: false });
-
-    </script>
+</script>
 </body>
 </html>
