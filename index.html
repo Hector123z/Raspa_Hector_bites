@@ -76,6 +76,7 @@
     function iniciarCanvas() {
         const c = document.getElementById("canvas");
         const ctx = c.getContext("2d");
+        ctx.globalCompositeOperation = "source-over"; // Reset para nuevo intento
         ctx.fillStyle = "#999"; 
         ctx.fillRect(0,0,300,150);
         ctx.fillStyle = "white";
@@ -85,8 +86,8 @@
 
         const raspar = (e) => {
             const rect = c.getBoundingClientRect();
-            const x = (e.clientX || e.touches[0].clientX) - rect.left;
-            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            const x = (e.clientX || (e.touches ? e.touches[0].clientX : 0)) - rect.left;
+            const y = (e.clientY || (e.touches ? e.touches[0].clientY : 0)) - rect.top;
             ctx.globalCompositeOperation = "destination-out";
             ctx.beginPath(); ctx.arc(x,y,25,0,Math.PI*2); ctx.fill();
         };
@@ -95,7 +96,7 @@
     }
 
     function enviarWSP(c) {
-        const tel = "519XXXXXXXXX"; // PON TU NÚMERO AQUÍ
+        const tel = "51975754119"; // TU NÚMERO REAL
         const msg = `¡Héctor, gané! Mi código es: ${c}`;
         window.location.href = `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
     }
