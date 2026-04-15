@@ -8,7 +8,7 @@
         :root {
             --verde: #1b5e20;
             --claro: #f1f8e9;
-            --dorado: #ffa000;
+            --rojo: #d32f2f;
         }
 
         body {
@@ -19,31 +19,46 @@
             display: flex; flex-direction: column; align-items: center;
         }
 
+        /* Pantalla de error si no vienen del QR */
+        #error-acceso {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            max-width: 350px;
+        }
+
+        /* Contenedor Principal */
+        #contenido-valido {
+            display: none;
+            width: 100%;
+            max-width: 380px;
+        }
+
         .ticket-box {
             background: white;
             border: 3px solid var(--verde);
             border-radius: 20px;
             padding: 20px;
-            width: 100%;
-            max-width: 350px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
 
         .codigo-display {
-            background: #eee;
-            padding: 10px;
+            background: #333;
+            color: #fff;
+            padding: 12px;
             font-family: monospace;
-            font-size: 22px;
+            font-size: 20px;
             font-weight: bold;
             letter-spacing: 2px;
             border-radius: 10px;
             margin: 15px 0;
-            color: #333;
-            border: 1px dashed #999;
+            border: 1px dashed #fff;
         }
 
         input {
-            width: 80%;
+            width: 85%;
             padding: 12px;
             font-size: 18px;
             border: 2px solid #ddd;
@@ -57,11 +72,12 @@
             background: var(--verde);
             color: white;
             border: none;
-            padding: 15px 30px;
+            padding: 15px;
             border-radius: 12px;
             font-weight: bold;
             cursor: pointer;
-            width: 80%;
+            width: 90%;
+            font-size: 16px;
         }
 
         /* AREA DE RASPADO */
@@ -95,37 +111,65 @@
             cursor: crosshair;
         }
 
-        .mensaje-info {
-            font-size: 13px;
-            color: #666;
-            margin-top: 10px;
+        .mensaje-bloqueo {
+            display: none;
+            background: #ffcdd2;
+            color: var(--rojo);
+            padding: 20px;
+            border-radius: 15px;
+            font-weight: bold;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
 
-    <div class="ticket-box">
-        <h2>🎟️ Ticket de Regalo</h2>
-        <p>Introduce el código generado por tu QR:</p>
-        
-        <div id="codigo-generado" class="codigo-display">HB-XXXX-X</div>
+    <div id="error-acceso">
+        <h1 style="color: var(--rojo);">❌ Acceso Denegado</h1>
+        <p>Para participar, debes <b>escanear el código QR</b> de tu empaque.</p>
+        <p style="font-size: 12px; color: #666;">No se permite el acceso por enlace directo.</p>
+    </div>
 
-        <div id="fase-validacion">
-            <input type="text" id="input-cliente" placeholder="Escribe el código">
-            <button class="btn-activar" onclick="validarTicket()">ACTIVAR RASPADO</button>
-        </div>
+    <div id="contenido-valido">
+        <div class="ticket-box">
+            <h2>🎟️ Ticket Héctor Bites</h2>
+            <p>Escribe el código de seguridad de abajo:</p>
+            
+            <div id="codigo-generado" class="codigo-display">Cargando...</div>
 
-        <div id="contenedor-juego">
-            <div id="capa-premio">
-                <span id="texto-premio" style="font-weight:bold; font-size:1.2rem; text-align:center; padding:10px;"></span>
+            <div id="fase-validacion">
+                <input type="text" id="input-cliente" placeholder="Escribe el código aquí">
+                <button class="btn-activar" onclick="validarTicket()">VERIFICAR Y ACTIVAR</button>
             </div>
-            <canvas id="canvas" width="300" height="150"></canvas>
+
+            <div id="contenedor-juego">
+                <div id="capa-premio">
+                    <span id="texto-premio" style="font-weight:bold; font-size:1.1rem; text-align:center;"></span>
+                </div>
+                <canvas id="canvas" width="300" height="150"></canvas>
+            </div>
+
+            <div id="msg-post-raspe" style="display:none; margin-top:160px; font-size:12px; color:#666;">
+                El código se marca como usado al empezar a raspar.
+            </div>
         </div>
 
-        <p id="status-msg" class="mensaje-info">El código solo es válido por 24 horas.</p>
+        <div id="pantalla-bloqueo" class="mensaje-bloqueo">
+            ⚠️ Ya has usado tu oportunidad por hoy.<br>¡Vuelve mañana!
+        </div>
     </div>
 
 <script>
+    // 1. SEGURIDAD DE URL (Solo entra si tiene ?access=true)
+    const urlParams = new URLSearchParams(window.location.search);
+    const viaQR = urlParams.get('access');
+
+    if (viaQR === 'true') {
+        document.getElementById('contenido-valido').style.display = 'block';
+    } else {
+        document.getElementById('error-acceso').style.display = 'block';
+    }
+
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
     const inputCliente = document.getElementById("input-cliente");
@@ -134,70 +178,80 @@
     const contenedorJuego = document.getElementById("contenedor-juego");
     const faseValidacion = document.getElementById("fase-validacion");
 
-    // 1. GENERAR CÓDIGO DIFÍCIL (Alfanumérico complejo)
-    function generarCodigoDificil() {
+    // 2. GENERAR O RECUPERAR CÓDIGO
+    function generarCodigo() {
         const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        let segment1 = "";
-        let segment2 = "";
-        for(let i=0; i<4; i++) segment1 += chars.charAt(Math.floor(Math.random() * chars.length));
-        for(let i=0; i<2; i++) segment2 += chars.charAt(Math.floor(Math.random() * chars.length));
-        return `HB-${segment1}-${segment2}`;
+        let res = "HB-";
+        for(let i=0; i<4; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+        res += "-" + chars.charAt(Math.floor(Math.random() * chars.length));
+        return res;
     }
 
-    // Inicializar código en la pantalla
-    const CODIGO_ACTUAL = generarCodigoDificil();
-    displayCodigo.innerText = CODIGO_ACTUAL;
+    // Si ya había activado un código pero refrescó, mantenemos el mismo
+    let codigoActivo = localStorage.getItem("bites_active_code");
+    if (!codigoActivo) {
+        codigoActivo = generarCodigo();
+    }
+    displayCodigo.innerText = codigoActivo;
 
-    // 2. REVISAR SI YA EXISTE UN PREMIO ASIGNADO A ESTE DISPOSITIVO
-    const sesionGuardada = localStorage.getItem("sesion_bites");
-    
+    // 3. VALIDACIÓN Y PERSISTENCIA
+    const TIEMPO_BLOQUEO = 24 * 60 * 60 * 1000;
+    const ultimoBloqueo = localStorage.getItem("bites_bloqueo_total");
+
+    if (ultimoBloqueo && (Date.now() - ultimoBloqueo < TIEMPO_BLOQUEO)) {
+        // Si ya raspó y no han pasado 24h, bloqueamos nuevas entradas
+        // Pero permitimos que vea su premio si refrescó accidentalmente
+        if (!localStorage.getItem("bites_luck")) {
+            faseValidacion.style.display = "none";
+            document.getElementById("pantalla-bloqueo").style.display = "block";
+        }
+    }
+
     function validarTicket() {
-        const inputVal = inputCliente.value.trim().toUpperCase();
+        const userVal = inputCliente.value.trim().toUpperCase();
         
-        if (inputVal !== CODIGO_ACTUAL) {
-            alert("❌ Código inválido. Copia exactamente el código de arriba.");
+        if (userVal !== codigoActivo) {
+            alert("❌ Código incorrecto. Escribe el código HB que aparece arriba.");
             return;
         }
 
-        // Si el código es correcto, activar raspa
+        // Si es correcto, guardamos que este código ya se intentó usar
+        localStorage.setItem("bites_active_code", codigoActivo);
+        
         faseValidacion.style.display = "none";
         contenedorJuego.style.display = "block";
-        
-        if (sesionGuardada) {
-            // Si ya raspó antes de refrescar, recuperamos su premio anterior
-            mostrarPremio(parseFloat(sesionGuardada));
-        } else {
-            // Es la primera vez que activa este código
-            const suerte = Math.random();
-            mostrarPremio(suerte);
+        document.getElementById("msg-post-raspe").style.display = "block";
+
+        let suerte = localStorage.getItem("bites_luck");
+        if (!suerte) {
+            suerte = Math.random();
+            localStorage.setItem("bites_luck", suerte);
         }
         
+        mostrarPremio(parseFloat(suerte));
         prepararCanvas();
     }
 
-    // 3. ASIGNAR PREMIO (Probabilidad 1% y 3%)
-    function mostrarPremio(valorSuerte) {
-        if (valorSuerte < 0.01) {
-            textoPremio.innerText = "🎉 ¡GANASTE 1 GALLETA GRANDE!";
+    function mostrarPremio(s) {
+        if (s < 0.01) { // 1%
+            textoPremio.innerHTML = "🎉 ¡GANASTE!<br>1 GALLETA GRANDE";
             textoPremio.style.color = "#e65100";
-        } else if (valorSuerte < 0.04) {
-            textoPremio.innerText = "🍪 ¡GANASTE 3 MINI GALLETAS!";
+        } else if (s < 0.04) { // 3%
+            textoPremio.innerHTML = "🍪 ¡GANASTE!<br>3 MINI GALLETAS";
             textoPremio.style.color = "#2e7d32";
         } else {
             textoPremio.innerText = "😢 Sigue intentando";
             textoPremio.style.color = "#777";
         }
-        // Guardamos el valor de suerte para que si refresca, el premio sea el mismo
-        localStorage.setItem("sesion_bites", valorSuerte);
     }
 
     function prepararCanvas() {
         ctx.fillStyle = "#999";
         ctx.fillRect(0, 0, 300, 150);
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 16px Arial";
+        ctx.fillStyle = "#eee";
+        ctx.font = "bold 18px Arial";
         ctx.textAlign = "center";
-        ctx.fillText("RASPA CON CUIDADO", 150, 80);
+        ctx.fillText("RASPA AQUÍ", 150, 85);
     }
 
     // 4. LÓGICA DE RASPADO
@@ -211,28 +265,23 @@
         ctx.arc(x, y, 20, 0, Math.PI * 2);
         ctx.fill();
 
-        // Bloqueo de seguridad definitivo: después de raspar 
-        // ya no podrá usar otros códigos por 24 horas
-        localStorage.setItem("bloqueo_total", Date.now());
-    }
-
-    // Seguridad extra: Si ya pasaron a la fase de raspe en el pasado
-    if (localStorage.getItem("bloqueo_total")) {
-        const tiempo = Date.now() - localStorage.getItem("bloqueo_total");
-        if (tiempo < (24 * 60 * 60 * 1000)) { // 24 horas
-            // Solo dejamos entrar si el usuario está a mitad de un raspe (refrescó)
-            // Si no, mostramos que ya participó. 
-            // Para este ejemplo simple, permitimos refrescar el premio actual.
+        // Al primer toque de raspe, bloqueamos el dispositivo por 24h
+        if (!localStorage.getItem("bites_bloqueo_total")) {
+            localStorage.setItem("bites_bloqueo_total", Date.now());
         }
     }
 
-    // Eventos
+    // EVENTOS
     let presionado = false;
     canvas.addEventListener("mousedown", () => presionado = true);
     window.addEventListener("mouseup", () => presionado = false);
     canvas.addEventListener("mousemove", (e) => { if(presionado) raspar(e); });
     canvas.addEventListener("touchmove", (e) => { e.preventDefault(); raspar(e); }, { passive: false });
 
+    // Si ya estaba en fase de raspe y refrescó, lo llevamos directo al juego
+    if (localStorage.getItem("bites_luck") && viaQR === 'true') {
+        validarTicket(); 
+    }
 </script>
 </body>
 </html>
