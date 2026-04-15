@@ -1,1 +1,68 @@
 
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Premio Héctor Bites</title>
+
+<style>
+body{
+font-family:sans-serif;
+text-align:center;
+background:#f1f8e9;
+}
+
+canvas{
+margin-top:20px;
+border-radius:10px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🎁 Raspa y gana</h2>
+<p>Descubre tu premio</p>
+
+<canvas id="canvas" width="300" height="150"></canvas>
+
+<script>
+let canvas = document.getElementById("canvas");
+let ctx = canvas.getContext("2d");
+
+// RESULTADO 5%
+let premio = Math.random() < 0.05 
+? "🎉 GANASTE UNA GALLETA GRATIS"
+: "😢 Sigue intentando";
+
+// fondo
+ctx.fillStyle = "#fff";
+ctx.fillRect(0,0,300,150);
+
+ctx.fillStyle = "#000";
+ctx.font = "16px Arial";
+ctx.fillText(premio,20,80);
+
+// capa gris
+ctx.fillStyle = "gray";
+ctx.fillRect(0,0,300,150);
+
+// raspar
+canvas.addEventListener("mousemove", raspar);
+canvas.addEventListener("touchmove", raspar);
+
+function raspar(e){
+let rect = canvas.getBoundingClientRect();
+let x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+let y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+
+ctx.globalCompositeOperation = "destination-out";
+ctx.beginPath();
+ctx.arc(x,y,15,0,Math.PI*2);
+ctx.fill();
+}
+</script>
+
+</body>
+</html>
