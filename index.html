@@ -1,92 +1,145 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Raspa y Gana</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raspa y Gana - Héctor Bites</title>
+    <style>
+        :root {
+            --primary-color: #2e7d32; /* Verde similar a tu app */
+            --bg-color: #f1f8e9;
+        }
 
-<style>
-body{
-font-family:sans-serif;
-text-align:center;
-background:#f1f8e9;
-}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-canvas{
-margin-top:20px;
-border:2px solid black;
-border-radius:10px;
-touch-action:none;
-}
-</style>
+        .container {
+            position: relative;
+            width: 300px;
+            height: 150px;
+            margin-top: 20px;
+            user-select: none;
+        }
+
+        /* El mensaje que está DEBAJO del raspa */
+        #premio-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            border: 2px solid #ccc;
+            box-sizing: border-box;
+            z-index: 1;
+        }
+
+        #texto-premio {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+            padding: 10px;
+        }
+
+        /* El canvas que está ENCIMA */
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+            border-radius: 12px;
+            z-index: 2;
+            touch-action: none;
+        }
+
+        h2 { color: var(--primary-color); margin-bottom: 5px; }
+        p { color: #555; margin-top: 0; }
+    </style>
 </head>
-
 <body>
 
-<h2>🎁 Raspa y gana</h2>
-<p>Raspa el cuadro 👇</p>
+    <h2>🎁 Raspa y Gana</h2>
+    <p>¡Descubre tu premio sorpresa! 👇</p>
 
-<canvas id="canvas" width="300" height="150"></canvas>
+    <div class="container">
+        <div id="premio-container">
+            <span id="texto-premio">Cargando...</span>
+        </div>
+        
+        <canvas id="canvas" width="300" height="150"></canvas>
+    </div>
 
-<script>
-let canvas = document.getElementById("canvas");
-let ctx = canvas.getContext("2d");
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const textoPremio = document.getElementById("texto-premio");
 
-// 🎯 PROBABILIDAD
-let r = Math.random();
-let premio = "";
+        // 1. Lógica del Premio
+        const r = Math.random();
+        if (r < 0.025) {
+            textoPremio.innerText = "🎉 ¡GANASTE 1 GALLETA GRANDE!";
+            textoPremio.style.color = "#e65100";
+        } else if (r < 0.08) {
+            textoPremio.innerText = "🍪 ¡GANASTE UN PACK DUO!";
+            textoPremio.style.color = "#2e7d32";
+        } else {
+            textoPremio.innerText = "😢 Sigue intentando";
+        }
 
-if(r < 0.025){
-premio = "🎉 GANASTE 1 GRANDE";
-}else if(r < 0.05){
-premio = "🎉 GANASTE 3 MINI";
-}else{
-premio = "😢 Sigue intentando";
-}
+        // 2. Dibujar capa gris en el canvas
+        function inicializarCanvas() {
+            ctx.fillStyle = "#999"; // Color gris
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Añadir un patrón de puntos para que parezca ticket real
+            ctx.fillStyle = "#888";
+            for(let i=0; i<canvas.width; i+=10) {
+                for(let j=0; j<canvas.height; j+=10) {
+                    if(Math.random() > 0.5) ctx.fillRect(i, j, 2, 2);
+                }
+            }
+        }
 
-// 🧾 1. DIBUJAR PREMIO (ABAJO)
-ctx.fillStyle = "#ffffff";
-ctx.fillRect(0,0,300,150);
+        inicializarCanvas();
 
-ctx.fillStyle = "#000";
-ctx.font = "bold 18px Arial";
-ctx.textAlign = "center";
-ctx.textBaseline = "middle";
-ctx.fillText(premio,150,75);
+        // 3. Función para raspar
+        function raspar(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
 
-// 🟫 2. CAPA GRIS ENCIMA
-ctx.globalCompositeOperation = "source-over";
-ctx.fillStyle = "#888";
-ctx.fillRect(0,0,300,150);
+            ctx.globalCompositeOperation = "destination-out";
+            ctx.beginPath();
+            ctx.arc(x, y, 20, 0, Math.PI * 2);
+            ctx.fill();
+        }
 
-// 🎮 3. FUNCION RASPAR
-function raspar(x,y){
-ctx.globalCompositeOperation = "destination-out";
-ctx.beginPath();
-ctx.arc(x,y,18,0,Math.PI*2);
-ctx.fill();
-}
+        // Eventos de Mouse
+        let esPresionado = false;
+        canvas.addEventListener("mousedown", () => esPresionado = true);
+        window.addEventListener("mouseup", () => esPresionado = false);
+        canvas.addEventListener("mousemove", (e) => {
+            if (esPresionado) raspar(e);
+        });
 
-// 🖱️ PC
-let presionado = false;
+        // Eventos Táctiles (Móvil)
+        canvas.addEventListener("touchmove", (e) => {
+            e.preventDefault();
+            raspar(e);
+        }, { passive: false });
 
-canvas.addEventListener("mousedown", () => presionado = true);
-canvas.addEventListener("mouseup", () => presionado = false);
-
-canvas.addEventListener("mousemove", e => {
-if(!presionado) return;
-let rect = canvas.getBoundingClientRect();
-raspar(e.clientX - rect.left, e.clientY - rect.top);
-});
-
-// 📱 CELULAR
-canvas.addEventListener("touchmove", e => {
-e.preventDefault();
-let rect = canvas.getBoundingClientRect();
-let touch = e.touches[0];
-raspar(touch.clientX - rect.left, touch.clientY - rect.top);
-});
-</script>
-
+    </script>
 </body>
 </html>
