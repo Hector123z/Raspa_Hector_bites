@@ -3,284 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Héctor Bites | Raspa y Gana VIP</title>
+    <title>Héctor Bites | Raspa y Gana</title>
     <style>
-        :root {
-            --verde: #1b5e20;
-            --claro: #f1f8e9;
-            --rojo: #d32f2f;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            text-align: center;
-            background-color: var(--claro);
-            margin: 0; padding: 20px;
-            display: flex; flex-direction: column; align-items: center;
-        }
-
-        /* Pantalla de error si no vienen del QR */
-        #error-acceso {
-            display: none;
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            max-width: 350px;
-        }
-
-        /* Contenedor Principal */
-        #contenido-valido {
-            display: none;
-            width: 100%;
-            max-width: 380px;
-        }
-
-        .ticket-box {
-            background: white;
-            border: 3px solid var(--verde);
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-
-        .codigo-display {
-            background: #333;
-            color: #fff;
-            padding: 12px;
-            font-family: monospace;
-            font-size: 20px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            border-radius: 10px;
-            margin: 15px 0;
-            border: 1px dashed #fff;
-        }
-
-        input {
-            width: 85%;
-            padding: 12px;
-            font-size: 18px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            text-align: center;
-        }
-
-        .btn-activar {
-            background: var(--verde);
-            color: white;
-            border: none;
-            padding: 15px;
-            border-radius: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 90%;
-            font-size: 16px;
-        }
-
-        /* AREA DE RASPADO */
-        #contenedor-juego {
-            display: none;
-            position: relative;
-            width: 300px;
-            height: 150px;
-            margin: 20px auto;
-        }
-
-        #capa-premio {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 15px;
-            border: 2px solid #ddd;
-            z-index: 1;
-        }
-
-        #canvas {
-            position: absolute;
-            top: 0; left: 0;
-            z-index: 2;
-            border-radius: 15px;
-            touch-action: none;
-            cursor: crosshair;
-        }
-
-        .mensaje-bloqueo {
-            display: none;
-            background: #ffcdd2;
-            color: var(--rojo);
-            padding: 20px;
-            border-radius: 15px;
-            font-weight: bold;
-            margin-top: 20px;
-        }
+        :root { --v: #1b5e20; --c: #f1f8e9; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--c); text-align: center; padding: 20px; }
+        .box { background: white; border: 3px solid var(--v); border-radius: 20px; padding: 20px; max-width: 350px; margin: auto; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        input { width: 85%; padding: 12px; margin: 15px 0; border: 2px solid #ddd; border-radius: 10px; text-align: center; font-size: 18px; text-transform: uppercase; font-weight: bold; }
+        button { background: var(--v); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 90%; font-size: 16px; }
+        #juego { display: none; margin-top: 20px; position: relative; width: 300px; height: 150px; margin-left: auto; margin-right: auto; }
+        canvas { position: absolute; top: 0; left: 0; z-index: 2; border-radius: 15px; touch-action: none; cursor: crosshair; }
+        #premio { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid #ddd; border-radius: 15px; z-index: 1; background: white; font-size: 1.2rem; }
+        #error-msg { display: none; color: red; background: white; padding: 20px; border-radius: 15px; }
     </style>
 </head>
 <body>
 
-    <div id="error-acceso">
-        <h1 style="color: var(--rojo);">❌ Acceso Denegado</h1>
-        <p>Para participar, debes <b>escanear el código QR</b> de tu empaque.</p>
-        <p style="font-size: 12px; color: #666;">No se permite el acceso por enlace directo.</p>
+    <div id="pantalla-error" style="display:none;">
+        <h1 style="color:red;">❌ Acceso Denegado</h1>
+        <p>Escanea el QR oficial de Héctor Bites.</p>
     </div>
 
-    <div id="contenido-valido">
-        <div class="ticket-box">
-            <h2>🎟️ Ticket Héctor Bites</h2>
-            <p>Escribe el código de seguridad de abajo:</p>
-            
-            <div id="codigo-generado" class="codigo-display">Cargando...</div>
+    <div id="contenido-qr" class="box">
+        <h2>🎟️ Héctor Bites</h2>
+        <p>Ingresa el código de tu galleta:</p>
+        <input type="text" id="codigo-input" placeholder="Ej: HB-7A2">
+        <button onclick="verificarCodigo()">ACTIVAR RASPADO</button>
 
-            <div id="fase-validacion">
-                <input type="text" id="input-cliente" placeholder="Escribe el código aquí">
-                <button class="btn-activar" onclick="validarTicket()">VERIFICAR Y ACTIVAR</button>
-            </div>
-
-            <div id="contenedor-juego">
-                <div id="capa-premio">
-                    <span id="texto-premio" style="font-weight:bold; font-size:1.1rem; text-align:center;"></span>
-                </div>
-                <canvas id="canvas" width="300" height="150"></canvas>
-            </div>
-
-            <div id="msg-post-raspe" style="display:none; margin-top:160px; font-size:12px; color:#666;">
-                El código se marca como usado al empezar a raspar.
-            </div>
+        <div id="juego">
+            <div id="premio"></div>
+            <canvas id="canvas" width="300" height="150"></canvas>
         </div>
-
-        <div id="pantalla-bloqueo" class="mensaje-bloqueo">
-            ⚠️ Ya has usado tu oportunidad por hoy.<br>¡Vuelve mañana!
-        </div>
+        <div id="area-wsp" style="margin-top:20px;"></div>
     </div>
 
 <script>
-    // 1. SEGURIDAD DE URL (Solo entra si tiene ?access=true)
+    // Seguridad de acceso por QR
     const urlParams = new URLSearchParams(window.location.search);
-    const viaQR = urlParams.get('access');
-
-    if (viaQR === 'true') {
-        document.getElementById('contenido-valido').style.display = 'block';
-    } else {
-        document.getElementById('error-acceso').style.display = 'block';
+    if (urlParams.get('access') !== 'true') {
+        document.getElementById('contenido-qr').style.display = 'none';
+        document.getElementById('pantalla-error').style.display = 'block';
     }
 
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    const inputCliente = document.getElementById("input-cliente");
-    const displayCodigo = document.getElementById("codigo-generado");
-    const textoPremio = document.getElementById("texto-premio");
-    const contenedorJuego = document.getElementById("contenedor-juego");
-    const faseValidacion = document.getElementById("fase-validacion");
+    function verificarCodigo() {
+        const cod = document.getElementById("codigo-input").value.trim().toUpperCase();
+        if(cod.length < 3) return alert("Ingresa un código válido");
 
-    // 2. GENERAR O RECUPERAR CÓDIGO
-    function generarCodigo() {
-        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        let res = "HB-";
-        for(let i=0; i<4; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
-        res += "-" + chars.charAt(Math.floor(Math.random() * chars.length));
-        return res;
-    }
-
-    // Si ya había activado un código pero refrescó, mantenemos el mismo
-    let codigoActivo = localStorage.getItem("bites_active_code");
-    if (!codigoActivo) {
-        codigoActivo = generarCodigo();
-    }
-    displayCodigo.innerText = codigoActivo;
-
-    // 3. VALIDACIÓN Y PERSISTENCIA
-    const TIEMPO_BLOQUEO = 24 * 60 * 60 * 1000;
-    const ultimoBloqueo = localStorage.getItem("bites_bloqueo_total");
-
-    if (ultimoBloqueo && (Date.now() - ultimoBloqueo < TIEMPO_BLOQUEO)) {
-        // Si ya raspó y no han pasado 24h, bloqueamos nuevas entradas
-        // Pero permitimos que vea su premio si refrescó accidentalmente
-        if (!localStorage.getItem("bites_luck")) {
-            faseValidacion.style.display = "none";
-            document.getElementById("pantalla-bloqueo").style.display = "block";
-        }
-    }
-
-    function validarTicket() {
-        const userVal = inputCliente.value.trim().toUpperCase();
-        
-        if (userVal !== codigoActivo) {
-            alert("❌ Código incorrecto. Escribe el código HB que aparece arriba.");
-            return;
-        }
-
-        // Si es correcto, guardamos que este código ya se intentó usar
-        localStorage.setItem("bites_active_code", codigoActivo);
-        
-        faseValidacion.style.display = "none";
-        contenedorJuego.style.display = "block";
-        document.getElementById("msg-post-raspe").style.display = "block";
-
-        let suerte = localStorage.getItem("bites_luck");
-        if (!suerte) {
-            suerte = Math.random();
-            localStorage.setItem("bites_luck", suerte);
+        // Fórmula matemática de probabilidad (Hash)
+        let hash = 0;
+        for (let i = 0; i < cod.length; i++) {
+            hash = cod.charCodeAt(i) + ((hash << 5) - hash);
         }
         
-        mostrarPremio(parseFloat(suerte));
-        prepararCanvas();
-    }
+        // 3% de probabilidad basado en el código ingresado
+        const esGanador = (Math.abs(hash) % 100) < 3; 
 
-    function mostrarPremio(s) {
-        if (s < 0.01) { // 1%
-            textoPremio.innerHTML = "🎉 ¡GANASTE!<br>1 GALLETA GRANDE";
-            textoPremio.style.color = "#e65100";
-        } else if (s < 0.04) { // 3%
-            textoPremio.innerHTML = "🍪 ¡GANASTE!<br>3 MINI GALLETAS";
-            textoPremio.style.color = "#2e7d32";
+        document.getElementById("juego").style.display = "block";
+        const txtPremio = document.getElementById("premio");
+        const areaWsp = document.getElementById("area-wsp");
+
+        if (esGanador) {
+            txtPremio.innerHTML = "🎉 ¡GANASTE!<br>1 GALLETA";
+            txtPremio.style.color = "green";
+            areaWsp.innerHTML = `<button onclick="enviarWSP('${cod}')" style="background:#25d366">📲 RECLAMAR POR WHATSAPP</button>`;
         } else {
-            textoPremio.innerText = "😢 Sigue intentando";
-            textoPremio.style.color = "#777";
+            txtPremio.innerHTML = "😢 SIGUE INTENTANDO";
+            txtPremio.style.color = "#777";
+            areaWsp.innerHTML = "<p style='color:gray; font-size:12px;'>¡Suerte para la próxima!</p>";
         }
+        iniciarCanvas();
     }
 
-    function prepararCanvas() {
-        ctx.fillStyle = "#999";
-        ctx.fillRect(0, 0, 300, 150);
-        ctx.fillStyle = "#eee";
+    function iniciarCanvas() {
+        const c = document.getElementById("canvas");
+        const ctx = c.getContext("2d");
+        ctx.fillStyle = "#999"; 
+        ctx.fillRect(0,0,300,150);
+        ctx.fillStyle = "white";
         ctx.font = "bold 18px Arial";
         ctx.textAlign = "center";
         ctx.fillText("RASPA AQUÍ", 150, 85);
+
+        const raspar = (e) => {
+            const rect = c.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            ctx.globalCompositeOperation = "destination-out";
+            ctx.beginPath(); ctx.arc(x,y,25,0,Math.PI*2); ctx.fill();
+        };
+        c.ontouchmove = (e) => { e.preventDefault(); raspar(e); };
+        c.onmousemove = (e) => { if(e.buttons==1) raspar(e); };
     }
 
-    // 4. LÓGICA DE RASPADO
-    function raspar(e) {
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX || (e.touches ? e.touches[0].clientX : 0)) - rect.left;
-        const y = (e.clientY || (e.touches ? e.touches[0].clientY : 0)) - rect.top;
-
-        ctx.globalCompositeOperation = "destination-out";
-        ctx.beginPath();
-        ctx.arc(x, y, 20, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Al primer toque de raspe, bloqueamos el dispositivo por 24h
-        if (!localStorage.getItem("bites_bloqueo_total")) {
-            localStorage.setItem("bites_bloqueo_total", Date.now());
-        }
-    }
-
-    // EVENTOS
-    let presionado = false;
-    canvas.addEventListener("mousedown", () => presionado = true);
-    window.addEventListener("mouseup", () => presionado = false);
-    canvas.addEventListener("mousemove", (e) => { if(presionado) raspar(e); });
-    canvas.addEventListener("touchmove", (e) => { e.preventDefault(); raspar(e); }, { passive: false });
-
-    // Si ya estaba en fase de raspe y refrescó, lo llevamos directo al juego
-    if (localStorage.getItem("bites_luck") && viaQR === 'true') {
-        validarTicket(); 
+    function enviarWSP(c) {
+        const tel = "519XXXXXXXXX"; // PON TU NÚMERO AQUÍ
+        const msg = `¡Héctor, gané! Mi código es: ${c}`;
+        window.location.href = `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
     }
 </script>
 </body>
